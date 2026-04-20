@@ -100,7 +100,7 @@
 | # | 任务 | 状态 | 前置 |
 |---|------|------|------|
 | 1 | 云平台 PRD v0.1：目标用户、核心价值、MVP 范围 + 技术选型 ADR | ✅ | — |
-| 2 | TypeScript + React：项目初始化（Vite + TS 模板），理解 tsconfig、类型系统 | ⬜ | 1 |
+| 2 | TypeScript + React：项目初始化（Vite + TS 模板），理解 tsconfig、类型系统 | ✅ | 1 |
 | 3 | React 核心：JSX + 组件 + props/state + hooks（useState/useEffect/useRef） | ⬜ | 2 |
 | 4 | Docker Compose：定义前端 + 后端 + Redis + MySQL + Nginx + MQTT broker | ⬜ | 1 |
 | 5 | JWT 认证：登录/注册 + token 签发/验证 + 拦截器（Axios + React Context） | ⬜ | 3 |
@@ -393,5 +393,8 @@
 | 4/19 | 英语：前端构建 5 词复习（bundle/transpile/dependency graph/HMR/on-demand） | ✅ |
 | 4/19 | 技术调研：JWT vs Session，IoT 平台选哪种 | ✅ |
 | 4/19 | 英语：认证 5 词复习（stateless/revoke/payload/intermittent/horizontal scaling） | ✅ |
+| 4/20 | 技术调研：React 项目初始化（Vite + TS）+ HMR 验证 | ✅ |
+| 4/20 | 英语 S0：读《七王国的骑士》第二段（11 词） | ✅ |
+| 4/21 | 英语 S0：读《七王国的骑士》第三段（steward/stableboy/slung/battered/turret/curtain wall 等 8 词） | ✅ |
 | 4/19 | 技术调研：SSO 单点登录原理 + PRD 补充认证架构 | ✅ |
 | 4/19 | 英语：SSO 5 词复习（credential/redirect/authentication/authorization/callback） | ✅ |

@@ -23,8 +23,8 @@
 
 | 技能 | 子节点掌握情况 | 最近更新 |
 |------|---------------|----------|
-| React | JSX ⬜ · 组件 ⬜ · hooks ⬜ · 工程化 ⬜ | 2026-04-19 |
-| TypeScript | 类型系统 ⬜ · tsconfig ⬜ · 泛型 ⬜ · 工程化 ⬜ | 2026-04-19 |
+| React | JSX 🔧 · 组件 🔧 · useState 🔧 · useEffect ⬜ · useRef ⬜ · 工程化 🔧 | 2026-04-20 |
+| TypeScript | 类型系统 📖 · tsconfig 📖 · 泛型 ⬜ · 非空断言（!）📖 · 工程化 📖 | 2026-04-20 |
 | 构建工具 | Vite vs Webpack 📖 · HMR 原理 📖 · esbuild 角色 📖 · 生产构建 ⬜ | 2026-04-19 |
 | 包管理 | npm 📖 · pnpm 📖 · npx 📖 · lock 机制 ⬜ · 私有源 ⬜ | 2026-04-19 |
 
