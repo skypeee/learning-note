@@ -1,7 +1,7 @@
 import os
 import re
 import logging
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -11,6 +11,27 @@ LEARNING_ROOT = Path(
     os.environ.get("LEARNING_NOTE_ROOT", "/Users/duanduanzi/workspace/my-project/learning-note")
 )
 
+# 艾宾浩斯复习间隔（天）
+REVIEW_INTERVALS = [1, 3, 7, 15]
+
+# ──────────────────────────────────────────────
+# 苏格拉底核心规则（内嵌，替代 prompts.md）
+# ──────────────────────────────────────────────
+SOCRATIC_RULES = """你是一个苏格拉底式学习助手，通过提问引导用户深入理解技术。
+
+## 核心规则
+1. **每次只问一个问题** — 不要一次抛出多个
+2. **等用户回答再继续** — 用户没回答前不问下一个
+3. **答对了就追问** — 进入下一层或新话题
+4. **答错了就引导** — 用提示性问题帮用户自己想到，绝不直接给答案
+5. **保持简洁** — 回复控制在 150 字以内
+
+## 对话风格
+- 像工程师对工程师对话，不是老师对学生
+- 问题要具体，不要泛泛而谈
+- 根据用户当前任务进度调整话题深度"""
+
+
 def read_file(path: str) -> str:
     """读取文件内容，失败返回空字符串"""
     try:
@@ -19,285 +40,623 @@ def read_file(path: str) -> str:
         logger.warning(f"Failed to read {path}: {e}")
         return ""
 
-def build_system_prompt() -> str:
-    """组合完整的 system prompt"""
-    # 基础模板
-    base = read_file(str(LEARNING_ROOT / "demos/socratic-bot/prompts.md"))
 
-    # 动态读取用户背景
-    skill = read_file(str(LEARNING_ROOT / "SKILL.md"))
-    milestones = read_file(str(LEARNING_ROOT / "assessment/milestones.md"))
+def build_user_context() -> str:
+    """从 SKILL.md 提取关键信息，而非加载全文"""
+    skill_path = LEARNING_ROOT / "SKILL.md"
+    skill_text = read_file(str(skill_path))
+    if not skill_text:
+        return ""
 
+    # 提取关键句
     context_parts = []
-    if skill:
-        context_parts.append(f"## 用户技术栈和背景\n{skill}")
-    if milestones:
-        context_parts.append(f"## 当前里程碑\n{milestones}")
 
-    context = "\n\n".join(context_parts) if context_parts else ""
+    # 当前阶段
+    for line in skill_text.split("\n"):
+        if "SITL" in line or "HIL" in line:
+            context_parts.append(f"- 当前阶段：{line.strip().strip('-').strip()}")
+            break
 
-    return f"{base}\n\n{context}" if context else base
+    # 硬件
+    if "Pixhawk" in skill_text:
+        context_parts.append("- 硬件：Pixhawk 6C + ESP32-CAM")
+
+    # 优势
+    if "7年" in skill_text:
+        context_parts.append("- 优势：7年系统级开发经验，Senior System Analyst")
+
+    # 短板
+    short_lines = []
+    in_shortcomings = False
+    for line in skill_text.split("\n"):
+        if "我的短板" in line or "短板" in line:
+            in_shortcomings = True
+            continue
+        if in_shortcomings:
+            if line.strip().startswith("-"):
+                short_lines.append(line.strip().strip("-").strip())
+            elif line.strip() == "":
+                continue
+            elif not line.strip().startswith("-"):
+                break
+    if short_lines:
+        context_parts.append(f"- 短板：{', '.join(short_lines[:3])}")
+
+    # 对 AI 的要求
+    ai_reqs = []
+    in_ai_reqs = False
+    for line in skill_text.split("\n"):
+        if "对 AI 的要求" in line:
+            in_ai_reqs = True
+            continue
+        if in_ai_reqs:
+            if line.strip().startswith("1.") or line.strip().startswith("2."):
+                ai_reqs.append(line.strip())
+            elif line.strip() == "":
+                continue
+            elif in_ai_reqs and line.strip() and not line.strip().startswith(("1.", "2.", "3.", "4.", "5.", "6.", "7.")):
+                break
+            elif line.strip().startswith(("3.", "4.", "5.", "6.", "7.")):
+                ai_reqs.append(line.strip())
+    if ai_reqs:
+        context_parts.append(f"- AI 要求：{'；'.join(ai_reqs[:3])}")
+
+    return "\n".join(context_parts)
+
+def build_context_aware_prompt() -> str:
+    """构建动态 system prompt：苏格拉底规则 + 用户精简背景 + 当前状态"""
+    parts = [SOCRATIC_RULES]
+
+    # 用户背景
+    user_ctx = build_user_context()
+    if user_ctx:
+        parts.append(f"## 用户背景\n{user_ctx}")
+
+    # 今日到期复习
+    reviews = get_due_reviews()
+    if reviews:
+        review_lines = ["## 今日到期复习（优先）"]
+        for r in reviews:
+            review_lines.append(f"- {r['type']}：{r['content']}")
+        parts.append("\n".join(review_lines))
+
+    # 当前可领取任务
+    tasks = get_today_tasks()
+    if tasks:
+        parts.append(f"## 当前可领取任务\n{tasks}")
+    else:
+        parts.append("## 当前状态\n今天没有特定任务，自由引导用户讨论技术话题。")
+
+    return "\n\n---\n\n".join(parts)
+
+
+def build_system_prompt() -> str:
+    """兼容旧接口，调用 build_context_aware_prompt"""
+    return build_context_aware_prompt()
 
 def build_daily_prompt() -> str:
-    """生成今日任务的 system prompt，包含 6 维度知识推送 + 到期复习提醒"""
-    base = build_system_prompt()
-    today_tasks = get_today_tasks()
-    today_str = date.today().strftime("%Y-%m-%d")
-
-    task_section = f"\n\n## 今天的任务（{today_str}）\n"
-    if today_tasks:
-        task_section += today_tasks
-    else:
-        task_section += "今天没有特定任务，自由引导用户讨论技术话题。"
-
-    # 检查到期复习
-    reviews = get_due_reviews()
-    review_section = ""
-    if reviews:
-        review_section = "\n\n## 🔔 今日到期复习（优先完成）\n"
-        for r in reviews:
-            review_section += f"- **{r['type']}**：{r['content']}\n"
-
-    # 追加 6 维度知识推送
-    push_section = "\n\n## 今日知识推送（碎片时间用）\n"
-    push_topics = get_week_push_topics()
-    if push_topics:
-        categories = [
-            ("AI", push_topics.get("ai", "")),
-            ("AU/ArduPilot", push_topics.get("au", "")),
-            ("飞控", push_topics.get("fc", "")),
-            ("全栈", push_topics.get("stack", "")),
-            ("项目", push_topics.get("project", "")),
-            ("项目技术知识", push_topics.get("proj_tech", "")),
-        ]
-        lines = []
-        for cat, topic in categories:
-            if topic:
-                lines.append(f"- **{cat}**：{topic}")
-        if lines:
-            push_section += "\n".join(lines)
-        else:
-            push_section += "围绕当前周任务自由引导。"
-    else:
-        push_section += "围绕当前里程碑自由引导。"
-
-    return base + task_section + review_section + push_section
+    """生成定时推送的 system prompt"""
+    return build_context_aware_prompt()
 
 
 def get_due_reviews() -> list[dict]:
-    """检查今天到期需要复习的知识点"""
+    """从 review-tracker.md 检查今天到期需要复习的知识点"""
+    tracker_path = LEARNING_ROOT / "assessment/review-tracker.md"
+    tracker_text = read_file(str(tracker_path))
+    if not tracker_text:
+        return []
+
     today = date.today()
     reviews = []
+    lines = tracker_text.split("\n")
 
-    # 1. 检查英语词汇复习
-    vocab_path = LEARNING_ROOT / "english/vocabulary.md"
-    vocab_text = read_file(str(vocab_path))
-    if vocab_text:
-        # 查找 "下次复习：YYYY-MM-DD" 或 "下次复习：M/D"
-        for line in vocab_text.split("\n"):
-            if "下次复习" in line:
-                # 提取日期
-                date_match = re.search(r"(\d{4})-(\d{1,2})-(\d{1,2})", line)
-                if date_match:
-                    review_date = date(int(date_match.group(1)), int(date_match.group(2)), int(date_match.group(3)))
-                    if review_date <= today:
-                        # 找到对应的词汇段落
+    for line in lines:
+        # 匹配复习行：| xxx | 2026-04-19 | ⬜ 4/20 | ⬜ 4/22 | ...
+        if "⬜" not in line:
+            continue
+
+        # 提取首次学习日期
+        date_match = re.search(r"(\d{4})-(\d{1,2})-(\d{1,2})", line)
+        if not date_match:
+            continue
+
+        try:
+            first_date = date(int(date_match.group(1)), int(date_match.group(2)), int(date_match.group(3)))
+        except ValueError:
+            continue
+
+        # 提取知识点名（第一个 | 后的内容）
+        parts = [p.strip() for p in line.strip().strip("|").split("|")]
+        if not parts:
+            continue
+
+        item_name = parts[0]
+
+        # 检查每个复习轮次是否到期
+        for i, interval in enumerate(REVIEW_INTERVALS):
+            review_date = first_date + timedelta(days=interval)
+            review_str = f"{review_date.month}/{review_date.day}"
+
+            # 找到对应的复习列
+            col_idx = i + 2  # R1 在第3列（索引2）
+            if col_idx < len(parts):
+                cell = parts[col_idx]
+                # 如果标记了 ⬜ 且日期已到期
+                if "⬜" in cell and review_date <= today:
+                    # 前一轮是否已完成？R1 不需要前置检查
+                    prev_done = (i == 0)
+                    if i > 0:
+                        prev_cell = parts[col_idx - 1]  # 前一列的单元格
+                        prev_done = "✅" in prev_cell
+
+                    if prev_done:
+                        # 判断是否有阶段列（最后一列可能是阶段名，如 S0/S1）
+                        last_part = parts[-1].strip()
+                        stage = last_part if last_part in ("S0", "S1", "S2", "S3") else ""
                         reviews.append({
-                            "type": "📖 英语词汇",
-                            "content": "复习已学生词（共 13 词），逐个回忆含义和语境"
+                            "type": "📅 间隔复习",
+                            "content": f"{item_name} — 第{i+1}次复习（{review_str}到期）",
+                            "stage": stage,
                         })
-                        break
-
-    # 2. 检查飞控知识点复习（EKF _meta.md）
-    ekf_path = LEARNING_ROOT / "notes/topics/ekf/_meta.md"
-    ekf_text = read_file(str(ekf_path))
-    if ekf_text:
-        due_items = []
-        for line in ekf_text.split("\n"):
-            if "📖 已读" in line and "⬜ 未实验" not in line and "⬜ 未读" not in line:
-                # 提取知识点名
-                item_match = re.match(r"\|\s*(.+?)\s*\|", line)
-                if item_match:
-                    due_items.append(item_match.group(1).strip())
-        if due_items:
-            reviews.append({
-                "type": "🎯 飞控知识点",
-                "content": f"EKF 知识点间隔复习：{', '.join(due_items[:3])}"
-            })
-
-    # 3. 检查每周计划中的间隔复习标记
-    plan_path = LEARNING_ROOT / "assessment/weekly-plan.md"
-    plan_text = read_file(str(plan_path))
-    if plan_text:
-        today_strs = [today.strftime("%-m/%-d"), today.strftime("%m/%d")]
-        for ts in today_strs:
-            if ts in plan_text:
-                # 检查今天任务行是否有"复习"字样
-                lines = plan_text.split("\n")
-                for i, line in enumerate(lines):
-                    if ts in line and ("复习" in line or "间隔复习" in line):
-                        task_match = re.match(r"\|[^|]*\|[^|]*\|[^|]*\|[^|]*(飞控[^|]+)\|", line)
-                        if task_match:
-                            reviews.append({
-                                "type": "🎯 飞控复习",
-                                "content": task_match.group(1).strip()
-                            })
-                        break
+                        break  # 每个知识点只报最早的到期轮次
 
     return reviews
 
 def get_week_push_topics() -> dict:
-    """从 weekly-plan.md 提取当前周的推送主题，按 5 维度映射"""
+    """从当前周任务池提取推送主题"""
     plan_path = LEARNING_ROOT / "assessment/weekly-plan.md"
     plan_text = read_file(str(plan_path))
     if not plan_text:
         return {}
 
-    # 周主题映射表：根据每周的技术栈描述，提取 5 维度内容
-    week_patterns = [
-        # Week 2: TypeScript + React + Docker Compose + JWT + WebSocket
-        {
-            "week_kw": "Week 2",
-            "ai": "TS 类型系统在 AI 辅助编程中的价值（搜「TypeScript AI coding best practices」）",
-            "au": "ArduPilot 目录结构和子模块（搜 `ArduPilot directory structure`），各模块如何协作",
-            "fc": "EKF gpsGood/gpsGlitch/gpsInhibit 检测逻辑，结合 Pixhawk 实际飞行场景",
-            "stack": "TypeScript + Vite + React 项目初始化，tsconfig 关键配置项",
-            "project": "云平台 PRD 怎么写——目标用户、核心价值、MVP 范围界定",
-            "proj_tech": "Docker Compose 多服务编排：前端/Nginx/后端/Redis/MySQL/MQTT 一键启动",
-        },
-        # Week 3: React 表单 + Redis + gRPC + MQTT
-        {
-            "week_kw": "Week 3",
-            "ai": "AI 辅助写 React 组件——用 Copilot/Claude 快速生成列表/详情/表单",
-            "au": "ArduPilot 飞行模式（AUTO/RTL/LOITER）状态机切换逻辑",
-            "fc": "EKF innovation 是什么，GPS 融合拒绝的判定条件",
-            "stack": "Redis 数据结构选型：String vs Hash vs ZSet 在设备状态场景下的选择",
-            "project": "设备影子完整链路设计：MQTT → 后端 → Redis → gRPC → 前端",
-            "proj_tech": "gRPC + Protobuf 跨语言 IDL 定义，服务间通信 vs REST 对比",
-        },
-        # Week 4: 多租户 + MySQL + Elasticsearch + Nginx
-        {
-            "week_kw": "Week 4",
-            "ai": "RAG 中的 chunking 策略——设备日志怎么做最优切片",
-            "au": "ArduPilot failsafe 机制（RTL/land/crash 触发条件）",
-            "fc": "EKF GPS 融合前的"防御"机制——哪些校验在做",
-            "stack": "MySQL 复合索引设计 + EXPLAIN 执行计划分析",
-            "project": "多租户数据隔离方案选型：schema-per-tenant vs tenant_id",
-            "proj_tech": "Elasticsearch + Kibana 日志采集聚合，Nginx 反向代理限流配置",
-        },
-        # Week 5: AI 日志分析 + K8s + Helm
-        {
-            "week_kw": "Week 5",
-            "ai": "LLM 流式输出 + SSE 推送——怎么实现 AI 日志分析的实时反馈",
-            "au": "ArduPilot HIL 仿真，怎么从 SITL 过渡到硬件在环",
-            "fc": "Scheduler FAST_TASK vs SCHED_TASK 优先级对系统实时性的影响",
-            "stack": "K8s Deployment vs StatefulSet 区别，StatefulSet 管理有状态服务",
-            "project": "AI 日志分析 RAG 链路：日志采集 → 向量化 → 检索 → LLM 分析",
-            "proj_tech": "Helm Chart 编写——全栈服务打包，ConfigMap/Secret/HPA 配置",
-        },
-        # Week 6: CI/CD + 可观测性 + 混沌工程
-        {
-            "week_kw": "Week 6",
-            "ai": "AI 代码审查——用 LLM 做 PR 自动 review 的可行性",
-            "au": "ArduPilot 日志系统 DataFlash/AP_Logger，二进制格式解析",
-            "fc": "飞控初始化设置流程，AP_HAL 入口到各子系统初始化",
-            "stack": "Prometheus 自定义 metrics 暴露，Jaeger 全链路追踪原理",
-            "project": "混沌工程：Redis 宕机/DB 慢查询/MQ 断连的 RTO/RPO 测量",
-            "proj_tech": "GitHub Actions CI/CD 流水线设计 + Docker multi-stage build 镜像优化",
-        },
-        # Week 7: 全链路压测 + 性能调优 + 架构总结
-        {
-            "week_kw": "Week 7",
-            "ai": "LLM 输出质量评估——怎么建立 AI 日志分析的评估基准",
-            "au": "ArduPilot 社区贡献指南，怎么给主线提 PR",
-            "fc": "飞控全链路知识回顾口述：从入口到 EKF 到电机控制",
-            "stack": "React 性能优化：bundle 分析 + 代码分割 + memo/useMemo/useCallback",
-            "project": "云平台 MVP 全链路压测报告——端到端延迟 <500ms",
-            "proj_tech": "架构总结文档怎么写——技术决策回顾 + 踩坑记录沉淀",
-        },
-    ]
+    week_key, week_start = _find_current_week(plan_text)
+    if not week_key:
+        return {}
 
+    lines = plan_text.split("\n")
+    sections = {}
+    for i in range(week_start, len(lines)):
+        if "### P0 主线" in lines[i]:
+            sections["p0"] = i
+        elif "### P1 进阶" in lines[i]:
+            sections["p1"] = i
+        elif "### P2 AI前沿" in lines[i]:
+            sections["p2"] = i
+        elif "### P3 探索" in lines[i]:
+            sections["p3"] = i
+        elif lines[i].strip().startswith("## ") and i > week_start:
+            break
+
+    section_order = [sections.get(s, -1) for s in ["p0", "p1", "p2", "p3"]]
+
+    def parse_section(idx: int) -> list[dict]:
+        if idx < 0:
+            return []
+        end = section_order[idx + 1] if idx + 1 < len(section_order) and section_order[idx + 1] > 0 else len(lines)
+        return _parse_task_table(lines, idx + 1)
+
+    p0 = parse_section(0)
+    p1 = parse_section(1)
+    p2 = parse_section(2)
+    p3 = parse_section(3)
+
+    return {
+        "ai": _get_first_pending(p2)["name"] if _get_first_pending(p2) else "阅读 AI/LLM 前沿",
+        "au": (_get_first_pending(p3, "AU") or {}).get("name", "阅读 ArduPilot wiki"),
+        "fc": (_get_first_pending(p3, "飞控") or {}).get("name", "复习飞控知识点"),
+        "stack": (_get_first_pending(p0) or {}).get("name", "全栈项目推进"),
+        "project": (next((t for t in p0 if t.get("type") == "项目" and "⬜" in t["status"]), None) or {}).get("name", "项目推进"),
+        "proj_tech": (_get_first_pending(p1, "技术调研") or {}).get("name", "技术调研"),
+    }
+
+def _find_current_week(plan_text: str) -> tuple[str, int]:
+    """找到当前日期所在的周 section
+
+    Returns:
+        (week_section_title, start_line_index)
+    """
     today = date.today()
-    for pat in week_patterns:
-        if pat["week_kw"] in plan_text:
-            # 简单判断：如果当前日期在对应周的时间范围内
-            week_ranges = {
-                "Week 2": (date(2026, 4, 19), date(2026, 4, 25)),
-                "Week 3": (date(2026, 4, 26), date(2026, 5, 2)),
-                "Week 4": (date(2026, 5, 2), date(2026, 5, 8)),
-                "Week 5": (date(2026, 5, 10), date(2026, 5, 16)),
-                "Week 6": (date(2026, 5, 17), date(2026, 5, 23)),
-                "Week 7": (date(2026, 5, 24), date(2026, 5, 30)),
-            }
-            wk_key = pat["week_kw"]
-            if wk_key in week_ranges:
-                start, end = week_ranges[wk_key]
-                if start <= today <= end:
-                    return {
-                        "ai": pat["ai"],
-                        "au": pat["au"],
-                        "fc": pat["fc"],
-                        "stack": pat["stack"],
-                        "project": pat["project"],
-                        "proj_tech": pat["proj_tech"],
-                    }
+    week_ranges = {
+        "Week 2": (date(2026, 4, 19), date(2026, 4, 25)),
+        "Week 3": (date(2026, 4, 26), date(2026, 5, 2)),
+        "Week 4": (date(2026, 5, 2), date(2026, 5, 8)),
+        "Week 5": (date(2026, 5, 10), date(2026, 5, 16)),
+        "Week 6": (date(2026, 5, 17), date(2026, 5, 23)),
+        "Week 7": (date(2026, 5, 24), date(2026, 5, 30)),
+    }
 
-    return {}
+    lines = plan_text.split("\n")
+    for wk_key, (start, end) in week_ranges.items():
+        if start <= today <= end:
+            for i, line in enumerate(lines):
+                if wk_key in line and line.strip().startswith("##"):
+                    return wk_key, i
+
+    return "", -1
+
+
+def _parse_task_table(lines: list[str], start: int) -> list[dict]:
+    """解析 P0/P1/P2 任务表格，返回任务列表"""
+    tasks = []
+    i = start
+    while i < len(lines):
+        line = lines[i]
+        # 遇到下一个 ## 标题或文件结束，停止
+        if line.strip().startswith("## ") and i > start:
+            break
+        # 解析任务行：| # | 任务描述 | 类型 | 状态 | 前置 |
+        if "|" in line and ("⬜" in line or "✅" in line or "▶️" in line):
+            parts = [p.strip() for p in line.strip().strip("|").split("|")]
+            if len(parts) >= 4:
+                tasks.append({
+                    "id": parts[0],
+                    "name": parts[1],
+                    "type": parts[2],
+                    "status": parts[3],
+                    "prereq": parts[4] if len(parts) > 4 else "—",
+                })
+        i += 1
+    return tasks
+
+
+def _get_first_pending(tasks: list[dict], task_type: str = None) -> dict | None:
+    """找到第一个未完成的任务"""
+    for t in tasks:
+        if "⬜" in t["status"] and (task_type is None or t["type"] == task_type):
+            return t
+    return None
+
 
 def get_today_tasks() -> str:
-    """从 weekly-plan.md 解析今天任务
-
-    搜索 markdown 表格中匹配今天的日期行。
-    """
+    """从任务池获取多方向建议任务 + 到期复习提醒"""
     plan_path = LEARNING_ROOT / "assessment/weekly-plan.md"
     plan_text = read_file(str(plan_path))
     if not plan_text:
         return ""
 
-    today = date.today()
-    today_strs = [
-        today.strftime("%-m/%-d"),   # 4/18
-        today.strftime("%m/%d"),     # 04/18
-        today.strftime("%Y-%m-%d"),  # 2026-04-18
-    ]
+    week_key, week_start = _find_current_week(plan_text)
+    if not week_key:
+        return f"今天不在计划周范围内，自由探索学习。"
 
     lines = plan_text.split("\n")
-    tasks = []
-    in_task_section = False
 
+    # 找到各 section 起始行
+    sections = {}
+    for i in range(week_start, len(lines)):
+        if "### P0 主线" in lines[i]:
+            sections["p0"] = i
+        elif "### P1 进阶" in lines[i]:
+            sections["p1"] = i
+        elif "### P2 AI前沿" in lines[i]:
+            sections["p2"] = i
+        elif "### P3 探索" in lines[i]:
+            sections["p3"] = i
+        elif lines[i].strip().startswith("## ") and i > week_start:
+            break
+
+    section_order = ["p0", "p1", "p2", "p3"]
+    start_lines = [sections.get(s, -1) for s in section_order]
+
+    def parse_section(idx: int) -> list[dict]:
+        if idx < 0:
+            return []
+        end = start_lines[idx + 1] if idx + 1 < len(start_lines) and start_lines[idx + 1] > 0 else len(lines)
+        return _parse_task_table(lines, idx + 1)
+
+    all_sections = [parse_section(i) for i in range(len(start_lines)) if start_lines[i] >= 0]
+
+    # 到期复习
+    reviews = get_due_reviews()
+
+    parts = [f"**当前周**：{week_key}\n"]
+
+    if reviews:
+        parts.append("**📅 今日到期复习（优先）**")
+        for r in reviews:
+            parts.append(f"- {r['type']}：{r['content']}")
+        parts.append("")
+
+    # P0 主线
+    if all_sections:
+        p0 = _get_first_pending(all_sections[0])
+        if p0:
+            parts.append(f"**🔧 全栈主线（P0）**：{p0['name']}（前置：{p0.get('prereq', '—')}）")
+
+    # P1 进阶
+    if len(all_sections) > 1:
+        p1_tasks = all_sections[1]
+        eng = _get_first_pending(p1_tasks, "英语")
+        tech = _get_first_pending(p1_tasks, "技术调研")
+        if eng:
+            parts.append(f"**📖 英语（P1）**：{eng['name']}")
+        if tech:
+            parts.append(f"**🔍 技术调研（P1）**：{tech['name']}")
+
+    # P2 AI前沿
+    if len(all_sections) > 2:
+        ai = _get_first_pending(all_sections[2])
+        if ai:
+            parts.append(f"**🤖 AI前沿（P2）**：{ai['name']}")
+
+    # P3 探索
+    if len(all_sections) > 3:
+        fc = _get_first_pending(all_sections[3], "飞控") or _get_first_pending(all_sections[3], "AU")
+        if fc:
+            parts.append(f"**🚁 飞控/AU（P3）**：{fc['name']}")
+
+    if len(parts) <= 1:
+        parts.append("所有任务已完成 🎉，可以进入下一周或自由探索。")
+
+    parts.append("\n挑一个方向，回复任务名或方向即可。")
+    return "\n".join(parts)
+
+
+# ──────────────────────────────────────────────
+# 任务完成追踪
+# ──────────────────────────────────────────────
+
+def find_task_by_name(task_name: str) -> dict | None:
+    """根据任务名在 weekly-plan.md 中查找"""
+    plan_path = LEARNING_ROOT / "assessment/weekly-plan.md"
+    plan_text = read_file(str(plan_path))
+    if not plan_text:
+        return None
+
+    lines = plan_text.split("\n")
+    for line in lines:
+        if "⬜" in line and task_name in line:
+            parts = [p.strip() for p in line.strip().strip("|").split("|")]
+            if len(parts) >= 4:
+                return {
+                    "name": parts[1],
+                    "type": parts[2],
+                    "status": parts[3],
+                }
+    return None
+
+
+def mark_task_done(task_name: str) -> bool:
+    """将 weekly-plan.md 中的任务标记为 ✅"""
+    plan_path = LEARNING_ROOT / "assessment/weekly-plan.md"
+    plan_text = read_file(str(plan_path))
+    if not plan_text:
+        return False
+
+    lines = plan_text.split("\n")
+    updated = False
     for i, line in enumerate(lines):
-        # 找到包含今天日期的标题行
-        for ts in today_strs:
-            if ts in line and line.strip().startswith("##"):
-                in_task_section = True
-                tasks.append(f"### {line.strip().lstrip('#').strip()}")
-                break
+        if "⬜" in line and task_name in line:
+            lines[i] = line.replace("⬜", "✅", 1)
+            updated = True
+            break
 
-        if in_task_section:
-            # 收集后续行直到下一个同级标题
-            if line.strip().startswith("## ") and i > 0:
-                # 检查是否已经是下一个周/天的标题
-                for ts in today_strs:
-                    if ts in line:
-                        continue
-                # 遇到下一个 ## 标题就停止
-                if not any(ts in line for ts in today_strs):
+    if updated:
+        plan_path.write_text("\n".join(lines), encoding="utf-8")
+        logger.info(f"Task marked done: {task_name}")
+
+    return updated
+
+
+def add_review_entry(knowledge_point: str, stage: str = "") -> None:
+    """在 review-tracker.md 中添加新的复习条目"""
+    tracker_path = LEARNING_ROOT / "assessment/review-tracker.md"
+    tracker_text = read_file(str(tracker_path))
+    if not tracker_text:
+        return
+
+    today_str = date.today().strftime("%Y-%m-%d")
+    r1 = (date.today() + timedelta(days=1)).strftime("%-m/%-d")
+    r2 = (date.today() + timedelta(days=3)).strftime("%-m/%-d")
+    r3 = (date.today() + timedelta(days=7)).strftime("%-m/%-d")
+    r4 = (date.today() + timedelta(days=15)).strftime("%-m/%-d")
+
+    # 判断属于哪个 section（飞控/AI/英语）
+    section = "AI 知识点"  # 默认
+    if "EKF" in knowledge_point or "飞控" in knowledge_point or "Scheduler" in knowledge_point or "MAVLink" in knowledge_point or "AP_" in knowledge_point or "HAL" in knowledge_point:
+        section = "飞控知识点"
+    elif "英语" in knowledge_point or len(knowledge_point) < 20:  # 短的可能单词
+        section = "英语词汇"
+
+    # 找到对应 section 的最后一行，插入新条目
+    lines = tracker_text.split("\n")
+    insert_idx = len(lines)
+    for i, line in enumerate(lines):
+        if section in line and line.startswith("## "):
+            # 找到 section 标题
+            # 找到该 section 的最后一行（下一个 ## 之前）
+            for j in range(i + 1, len(lines)):
+                if lines[j].startswith("## "):
+                    insert_idx = j
                     break
+            else:
+                insert_idx = len(lines)
+            break
 
-            # 提取任务表格中今天的行
-            if "|" in line and "任务" in line or "|" in line and "状态" in line:
-                tasks.append(line)
-            elif "|" in line and "⬜" in line:
-                tasks.append(line)
+    # 检查是否已经存在
+    for line in lines:
+        if knowledge_point in line and today_str in line:
+            return  # 已存在，不重复添加
 
-    if not tasks:
-        # 降级：搜索包含今天日期的行
-        for i, line in enumerate(lines):
-            for ts in today_strs:
-                if ts in line:
-                    # 取该行前后各 3 行
-                    start = max(0, i - 2)
-                    end = min(len(lines), i + 4)
-                    return "\n".join(lines[start:end])
+    stage_suffix = f" | {stage}" if stage else ""
+    new_entry = f"| {knowledge_point} | {today_str} | ⬜ {r1} | ⬜ {r2} | ⬜ {r3} | ⬜ {r4}{stage_suffix} |"
 
-    return "\n".join(tasks) if tasks else ""
+    lines.insert(insert_idx, new_entry)
+    tracker_path.write_text("\n".join(lines), encoding="utf-8")
+    logger.info(f"Review entry added: {knowledge_point}")
+
+
+# ──────────────────────────────────────────────
+# Iter2: 验收检查
+# ──────────────────────────────────────────────
+
+ACCEPTANCE_QUESTIONS = {
+    "全栈": [
+        "项目跑通了吗？能 `docker-compose up` 启动？",
+        "代码写完后测试过吗？有没有 edge case？",
+        "前端页面能在浏览器正常渲染吗？",
+    ],
+    "英语": [
+        "刚才读的段落能用自己的话复述一遍吗？",
+        "记的生词还能记住几个？试着回忆一下。",
+    ],
+    "技术调研": [
+        "调研结论是什么？能用一句话说清楚核心发现吗？",
+        "这个技术选型对云平台项目有什么直接影响？",
+    ],
+    "AI前沿": [
+        "这个 AI 技术的核心价值是什么？",
+        "它和我们现在的项目有什么关联？",
+    ],
+    "飞控": [
+        "能用你自己的话解释这个机制的完整流程吗？",
+        "如果这个模块出故障，飞控会怎么响应？",
+    ],
+    "AU": [
+        "这个 ArduPilot 模块在整个系统中扮演什么角色？",
+        "它和其他模块的依赖关系是什么？",
+    ],
+    "项目": [
+        "这个决策对 MVP 范围有什么影响？",
+        "文档写完了吗？核心论点和论据是什么？",
+    ],
+}
+
+
+def get_acceptance_question(task_type: str) -> str:
+    """根据任务类型返回一个验收问题"""
+    import random
+    questions = ACCEPTANCE_QUESTIONS.get(task_type, ["这个任务完成了吗？有没有遗漏的地方？"])
+    return random.choice(questions)
+
+
+def mark_review_done(item_name: str) -> bool:
+    """在 review-tracker.md 中将某个知识点的最近一轮复习标记为 ✅"""
+    tracker_path = LEARNING_ROOT / "assessment/review-tracker.md"
+    tracker_text = read_file(str(tracker_path))
+    if not tracker_text:
+        return False
+
+    lines = tracker_text.split("\n")
+    today = date.today()
+
+    for line_idx, line in enumerate(lines):
+        if item_name not in line:
+            continue
+
+        # 匹配复习行
+        date_match = re.search(r"(\d{4})-(\d{1,2})-(\d{1,2})", line)
+        if not date_match:
+            continue
+
+        try:
+            first_date = date(int(date_match.group(1)), int(date_match.group(2)), int(date_match.group(3)))
+        except ValueError:
+            continue
+
+        parts = [p.strip() for p in line.strip().strip("|").split("|")]
+
+        # 找到第一个到期但还未标记的复习轮次
+        for i, interval in enumerate(REVIEW_INTERVALS):
+            review_date = first_date + timedelta(days=interval)
+            if review_date <= today:
+                col_idx = i + 2
+                if col_idx < len(parts):
+                    cell = parts[col_idx]
+                    if "⬜" in cell:
+                        # 标记为 ✅
+                        new_cell = cell.replace("⬜", "✅", 1)
+                        parts[col_idx] = new_cell
+                        # 重建行
+                        new_line = "| " + " | ".join(parts) + " |"
+                        lines[line_idx] = new_line
+                        tracker_path.write_text("\n".join(lines), encoding="utf-8")
+                        logger.info(f"Review marked done: {item_name} R{i+1}")
+                        return True
+
+    return False
+
+
+def generate_weekly_report() -> str:
+    """生成本周进度报告"""
+    plan_path = LEARNING_ROOT / "assessment/weekly-plan.md"
+    plan_text = read_file(str(plan_path))
+    if not plan_text:
+        return ""
+
+    week_key, week_start = _find_current_week(plan_text)
+    if not week_key:
+        return "不在计划周范围内。"
+
+    lines = plan_text.split("\n")
+
+    # 统计各 section
+    sections = {}
+    for i in range(week_start, len(lines)):
+        if "### P0 主线" in lines[i]:
+            sections["P0 主线"] = i
+        elif "### P1 进阶" in lines[i]:
+            sections["P1 进阶"] = i
+        elif "### P2 AI前沿" in lines[i]:
+            sections["P2 AI前沿"] = i
+        elif "### P3 探索" in lines[i]:
+            sections["P3 探索"] = i
+        elif lines[i].strip().startswith("## ") and i > week_start:
+            break
+
+    section_order = ["P0 主线", "P1 进阶", "P2 AI前沿", "P3 探索"]
+    start_lines = [sections.get(s, -1) for s in section_order]
+
+    def parse_section(idx: int) -> list[dict]:
+        if idx < 0:
+            return []
+        end = start_lines[idx + 1] if idx + 1 < len(start_lines) and start_lines[idx + 1] > 0 else len(lines)
+        return _parse_task_table(lines, idx + 1)
+
+    parts = [f"**📊 周报：{week_key}**\n"]
+
+    total_done = 0
+    total_tasks = 0
+
+    for sec_name, idx in zip(section_order, range(len(start_lines))):
+        if start_lines[idx] < 0:
+            continue
+        tasks = parse_section(idx)
+        if not tasks:
+            continue
+        done = sum(1 for t in tasks if "✅" in t["status"])
+        total = len(tasks)
+        total_done += done
+        total_tasks += total
+        pct = int(done * 100 / total) if total > 0 else 0
+        parts.append(f"**{sec_name}**：{done}/{total}（{pct}%）")
+
+    parts.append("")
+    overall_pct = int(total_done * 100 / total_tasks) if total_tasks > 0 else 0
+    parts.append(f"**总计**：{total_done}/{total_tasks} 完成（{overall_pct}%）")
+
+    # 复习进度
+    reviews = get_due_reviews()
+    tracker_path = LEARNING_ROOT / "assessment/review-tracker.md"
+    tracker_text = read_file(str(tracker_path))
+    if tracker_text:
+        total_review = 0
+        done_review = 0
+        for line in tracker_text.split("\n"):
+            if "⬜" in line or "✅" in line:
+                for interval in REVIEW_INTERVALS:
+                    total_review += 1
+                    if "✅" in line:
+                        done_review += 1
+        if total_review > 0:
+            review_pct = int(done_review * 100 / total_review)
+            parts.append(f"**复习进度**：{done_review}/{total_review}（{review_pct}%）")
+
+    # 建议
+    if overall_pct >= 70:
+        parts.append("\n进度正常，周末可以加一个额外学习任务。")
+    elif overall_pct >= 50:
+        parts.append("\n进度还行，周末补一下未完成的任务。")
+    else:
+        parts.append("\n进度落后，建议下周砍掉非核心任务，只保主线。")
+
+    return "\n".join(parts)
