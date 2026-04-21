@@ -101,7 +101,7 @@
 |---|------|------|------|
 | 1 | 云平台 PRD v0.1：目标用户、核心价值、MVP 范围 + 技术选型 ADR | ✅ | — |
 | 2 | TypeScript + React：项目初始化（Vite + TS 模板），理解 tsconfig、类型系统 | ✅ | 1 |
-| 3 | React 核心：JSX + 组件 + props/state + hooks（useState/useEffect/useRef） | ⬜ | 2 |
+| 3 | React 核心：JSX + 组件 + props/state + hooks（useState/useEffect/useRef） | ▶️ 进行中 | 2 |
 | 4 | Docker Compose：定义前端 + 后端 + Redis + MySQL + Nginx + MQTT broker | ⬜ | 1 |
 | 5 | JWT 认证：登录/注册 + token 签发/验证 + 拦截器（Axios + React Context） | ⬜ | 3 |
 | 6 | WebSocket：实时设备状态推送服务（后端 Go WebSocket + 前端订阅） | ⬜ | 3 |
