@@ -16,7 +16,7 @@
 | C/C++ 系统编程 | 进程线程 🎯 · 信号处理 🎯 · 内存管理 🔧 · 嵌入式场景 ⬜ | 2026-04-17 |
 | Python | Django ✅ · FastAPI ✅ · vLLM ✅ · Megatron-LM/DeepSpeed ✅ | 2026-04-17 |
 | Go | 基础语法 🔧 · HTTP 服务 🔧 · 并发/goroutine 🔧 · 生态 ⬜ | 2026-04-17 |
-| 分布式系统 | gRPC 🎯 · WebSocket 🎯 · K8s 🎯 · ActiveMQ 🎯 · CI/CD 🔧 | 2026-04-17 |
+| 分布式系统 | gRPC 🎯 · WebSocket 🔧（长连接断推排查中） · K8s 🎯 · ActiveMQ 🎯 · CI/CD 🔧 | 2026-04-28 |
 | 编译/调试 | 交叉编译 🔧 · 二进制翻译 🔧 · 源码级调试 🎯 · 性能分析 ⬜ | 2026-04-17 |
 
 ### 前端工程
@@ -25,7 +25,7 @@
 |------|---------------|----------|
 | React | JSX 🔧 · 组件 🔧 · useState 🔧 · useEffect ⬜ · useRef ⬜ · 工程化 🔧 | 2026-04-20 |
 | React Native | Expo 环境搭建 ⬜ · 组件模型 ⬜ · 跨平台导航 ⬜ · 原生模块 ⬜ · 与 Vue3 差异 ⬜ | - |
-| Vue3（已有） | 组合式 API 📖 · Pinia 📖 · WebSocket 集成 📖 | 2026-04-28 |
+| Vue3（已有） | 组合式 API 📖 · Pinia 📖 · WebSocket 集成 📖 · WHEP 视频 📖 | 2026-04-28 |
 | TypeScript | 类型系统 📖 · tsconfig 📖 · 泛型 ⬜ · 非空断言（!）📖 · 工程化 📖 | 2026-04-20 |
 | 构建工具 | Vite vs Webpack 📖 · HMR 原理 📖 · esbuild 角色 📖 · 生产构建 ⬜ | 2026-04-19 |
 | 包管理 | npm 📖 · pnpm 📖 · npx 📖 · lock 机制 ⬜ · 私有源 ⬜ | 2026-04-19 |

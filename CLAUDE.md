@@ -8,6 +8,16 @@ This is a personal learning notes repository for a flight control system enginee
 
 The user is a senior system analyst with 7 years of experience, not a beginner. They prefer system-level experiments, behavior verification, and engineering boundary exploration over fragmented tutorials. Always explain the "why" behind design decisions, not just the "how".
 
+### Work Three-Dimension Model
+
+The user's work has three dimensions that interleave daily:
+
+- **A. Real device testing** (真机测试): Ad-hoc, blocked on hardware availability. Currently: WebSocket→OpenHD message loss debugging + WebSocket long-connection drop investigation. Drops everything when boards are available.
+- **B. Product planning** (产品规划): Two parallel projects — "安全无人机" (security drone cloud platform, PRD v1.1 draft exists) and "Shadow Device" (嵌入式云平台, starting from scratch). Long-term, continuous thinking.
+- **C. Development** (开发): Migrating drone-web-console from Vue3 web to React Native (Expo) for cross-platform iOS/mobile support. This is the main output axis.
+
+Priority rule: A (when boards available) > C > B > learning. Learning tasks should directly serve A/B/C, not be a separate track.
+
 ## Subproject Commands
 
 ### React Core Demo (`demos/react-core-demo/`)
