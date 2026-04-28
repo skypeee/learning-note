@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>嵌入式全栈工程师成长之路 - 进度汇报</title>
+    <style>
+        /* Reset & Base */
+        :root {
+            --bg: #ffffff;
+            --text-1: #0c0d10;
+            --text-2: #55596a;
+            --text-3: #9ca1b0;
+            --accent: #111216;
+            --good: #1aaf6c;
+            --warn: #f5a524;
+            --border: rgba(17, 18, 22, .08);
+            --shadow: 0 4px 20px rgba(0,0,0,0.06);
+        }
+        body { margin: 0; padding: 0; background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, "Noto Sans SC", sans-serif; color: var(--text-1); overflow: hidden; height: 100vh; }
+        
+        /* Layout */
+        .deck { width: 100%; height: 100%; position: relative; }
+        .slide {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            padding: 60px 80px;
+            box-sizing: border-box;
+            display: flex; flex-direction: column; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.5s ease, transform 0.5s ease;
+            transform: translateX(40px);
+        }
+        .slide.active { opacity: 1; pointer-events: auto; transform: translateX(0); z-index: 10; }
+        
+        /* Typography */
+        h1 { font-size: 64px; margin: 0 0 20px; letter-spacing: -0.03em; line-height: 1.1; }
+        h2 { font-size: 42px; margin: 0 0 30px; letter-spacing: -0.02em; border-left: 6px solid var(--accent); padding-left: 20px; }
+        h3 { font-size: 24px; margin: 0 0 12px; }
+        p { font-size: 20px; line-height: 1.6; color: var(--text-2); margin-bottom: 16px; max-width: 800px; }
+        
+        /* Elements */
+        .tag { display: inline-block; padding: 6px 14px; border-radius: 20px; font-size: 14px; font-weight: 500; background: #f2f2f4; color: var(--text-2); margin-right: 8px; margin-bottom: 8px; }
+        .tag.active { background: #111216; color: #fff; }
+        .tag.success { background: #e6f7ef; color: var(--good); }
+        
+        .card-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; width: 100%; }
+        .card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 24px; box-shadow: var(--shadow); }
+        .card h4 { margin: 0 0 12px; font-size: 18px; }
+        .progress-bar { height: 6px; background: #f2f2f4; border-radius: 3px; margin-top: 12px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--accent); border-radius: 3px; width: 0%; transition: width 1s ease; }
+        
+        /* Navigation Hints */
+        .nav-hint { position: fixed; bottom: 30px; right: 40px; font-size: 14px; color: var(--text-3); z-index: 20; }
+    </style>
+</head>
+<body>
+
+<div class="deck" id="deck">
+
+    <!-- Slide 1: Cover -->
+    <div class="slide active">
+        <div style="font-size: 18px; color: var(--text-3); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 24px;">Progress Report · 2026.04.21</div>
+        <h1>嵌入式全栈工程师<br>成长之路</h1>
+        <p style="color: var(--text-2); font-size: 24px;">从底层飞控到云原生平台的全链路探索</p>
+        <div style="margin-top: 40px; display: flex; gap: 16px;">
+            <span class="tag active">React + TS</span>
+            <span class="tag active">Go Backend</span>
+            <span class="tag active">ArduPilot C++</span>
+            <span class="tag active">AI Agent</span>
+        </div>
+    </div>
+
+    <!-- Slide 2: Roadmap Overview -->
+    <div class="slide">
+        <h2>四条核心学习路线</h2>
+        <div class="card-grid">
+            <div class="card">
+                <h4>🚁 飞控 (ArduPilot)</h4>
+                <p style="font-size: 16px;">从 SITL 仿真到源码级掌控</p>
+                <div class="progress-bar"><div class="progress-fill" style="width: 45%"></div></div>
+                <p style="font-size: 14px; color: var(--text-3); margin-top: 8px;">当前阶段: <b>S0 (系统理解)</b> → 正在攻关 EKF 与调度机制</p>
+            </div>
+            <div class="card">
+                <h4>☁️ 全栈云平台</h4>
+                <p style="font-size: 16px;">通用设备管理系统 (SaaS)</p>
+                <div class="progress-bar"><div class="progress-fill" style="width: 30%"></div></div>
+                <p style="font-size: 14px; color: var(--text-3); margin-top: 8px;">当前阶段: <b>S0 (工程骨架)</b> → PRD 完成，React/Docker 推进中</p>
+            </div>
+            <div class="card">
+                <h4>🧠 AI & 模型认知</h4>
+                <p style="font-size: 16px;">RAG 架构、Agent 与部署优化</p>
+                <div class="progress-bar"><div class="progress-fill" style="width: 20%"></div></div>
+                <p style="font-size: 14px; color: var(--text-3); margin-top: 8px;">当前阶段: <b>S0 (认知与应用)</b> → 熟悉主流模型与 Prompt</p>
+            </div>
+            <div class="card">
+                <h4>📖 英语 (English)</h4>
+                <p style="font-size: 16px;">技术阅读与听力恢复</p>
+                <div class="progress-bar"><div class="progress-fill" style="width: 15%"></div></div>
+                <p style="font-size: 14px; color: var(--text-3); margin-top: 8px;">当前阶段: <b>S0 (恢复)</b> → 每日阅读《七王国的骑士》</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 3: This Week's Focus -->
+    <div class="slide">
+        <h2>本周重点：Week 2 (4/19 - 4/25)</h2>
+        <div style="display: flex; gap: 40px; margin-top: 20px;">
+            <div style="flex: 1;">
+                <h3 style="color: var(--good);">✅ 已完成</h3>
+                <ul style="color: var(--text-2); line-height: 2;">
+                    <li>云平台 PRD v0.1 与技术选型 ADR</li>
+                    <li>React + TS 项目初始化 (Vite)</li>
+                    <li>Docker Compose (Redis/MySQL/EMQX)</li>
+                    <li>OpenHD 丢包/遥测数据深度解析</li>
+                </ul>
+            </div>
+            <div style="flex: 1;">
+                <h3 style="color: var(--warn);">🔄 进行中</h3>
+                <ul style="color: var(--text-2); line-height: 2;">
+                    <li><b>React 核心</b>: 组件、Props/State、Hooks</li>
+                    <li><b>MAVLink 日志系统</b>: 前端回放功能设计</li>
+                    <li><b>英语</b>: 分级阅读 S0 (生词率 &lt; 5%)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 4: Next Steps -->
+    <div class="slide">
+        <h2>下一步：Next Steps</h2>
+        <div class="card" style="margin-bottom: 24px;">
+            <h4>🛠️ 全栈项目 (Fullstack)</h4>
+            <p style="margin-bottom: 8px;">目标：完成基础认证与通信链路</p>
+            <div class="tag">JWT 认证链路</div>
+            <div class="tag">WebSocket 实时推送</div>
+            <div class="tag">Go 后端接口实现</div>
+        </div>
+        <div class="card">
+            <h4>🚁 飞控储备 (Flight Control)</h4>
+            <p style="margin-bottom: 8px;">目标：从应用层下沉到控制层</p>
+            <div class="tag">EKF3 核心代码精读 (GPS Fusion)</div>
+            <div class="tag">Lua 脚本注入测试</div>
+            <div class="tag">HIL 硬件在环准备</div>
+        </div>
+    </div>
+
+    <!-- Slide 5: End -->
+    <div class="slide">
+        <h1>保持热爱，持续构建</h1>
+        <p style="font-size: 24px;">"先判断值不值得做，再快速学会并落地"</p>
+        <div style="margin-top: 40px;">
+            <span class="tag active">Keep Learning</span>
+            <span class="tag active">Keep Shipping</span>
+        </div>
+    </div>
+
+</div>
+
+<div class="nav-hint">← → 切换幻灯片</div>
+
+<script>
+    const slides = document.querySelectorAll('.slide');
+    let current = 0;
+    
+    // Init progress bars
+    document.querySelectorAll('.progress-fill').forEach(bar => {
+        const width = bar.style.width;
+        bar.style.width = '0';
+        setTimeout(() => bar.style.width = width, 300);
+    });
+
+    function showSlide(index) {
+        slides[current].classList.remove('active');
+        current = (index + slides.length) % slides.length;
+        slides[current].classList.add('active');
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ') showSlide(current + 1);
+        if (e.key === 'ArrowLeft') showSlide(current - 1);
+    });
+
+    // Click to advance
+    document.body.addEventListener('click', (e) => {
+        if(e.target.tagName !== 'A' && e.target.tagName !== 'BUTTON') {
+             showSlide(current + 1);
+        }
+    });
+</script>
+
+</body>
+</html>
