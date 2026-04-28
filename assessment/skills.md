@@ -24,6 +24,8 @@
 | 技能 | 子节点掌握情况 | 最近更新 |
 |------|---------------|----------|
 | React | JSX 🔧 · 组件 🔧 · useState 🔧 · useEffect ⬜ · useRef ⬜ · 工程化 🔧 | 2026-04-20 |
+| React Native | Expo 环境搭建 ⬜ · 组件模型 ⬜ · 跨平台导航 ⬜ · 原生模块 ⬜ · 与 Vue3 差异 ⬜ | - |
+| Vue3（已有） | 组合式 API 📖 · Pinia 📖 · WebSocket 集成 📖 | 2026-04-28 |
 | TypeScript | 类型系统 📖 · tsconfig 📖 · 泛型 ⬜ · 非空断言（!）📖 · 工程化 📖 | 2026-04-20 |
 | 构建工具 | Vite vs Webpack 📖 · HMR 原理 📖 · esbuild 角色 📖 · 生产构建 ⬜ | 2026-04-19 |
 | 包管理 | npm 📖 · pnpm 📖 · npx 📖 · lock 机制 ⬜ · 私有源 ⬜ | 2026-04-19 |
@@ -36,15 +38,15 @@
 | Session | Cookie 机制 📖 · Redis 存储 📖 · CSRF 防护 ⬜ | 2026-04-19 |
 | SSO/OIDC | 架构设计 🔧 · 授权码流程 🔧 · 多租户隔离 🔧 · 设备认证 🔧 · Keycloak ⬜ | 2026-04-19 |
 
-### 飞控
+### 飞控（ArduPilot 已有基础，转向 PX4）
 
 | 技能 | 子节点掌握情况 | 最近更新 |
 |------|---------------|----------|
-| 程序入口 | HAL 生成 main() 🎯 · setup/loop 生命周期 🎯 · 初始化流程 🎯 | 2026-04-17 |
-| 调度系统 | AP_Scheduler 🎯 · FAST_TASK vs SCHED_TASK 🎯 · priority 影响 🎯 · delay 链路 🎯 | 2026-04-19 |
-| HAL 抽象层 | HAL 机制 🎯 · Lua/Peripheral 📖 | 2026-04-17 |
-| EKF/状态估计 | 架构定位 📖 · GPS 数据入口 📖 · AP_GPS → EKF 调用链 📖 · innovation/testRatio ⬜ · FuseVelPosNED ⬜ · GPS Glitch ⬜ · 破坏性实验 ⬜ | 2026-04-19 |
-| MAVLink 通信 | 基础协议 📖 · MAVProxy 📖 · 自定义消息 🔧 · pymavlink 通信 📖 · 高频压力测试 ⬜ | 2026-04-17 |
+| ArduPilot（已有） | 程序入口 🎯 · 调度系统 🎯 · HAL 抽象层 🎯 · EKF 📖 · MAVLink 📖 | 2026-04-28 |
+| PX4 架构 | 目录结构 ⬜ · uORB 机制 ⬜ · 工作队列 ⬜ · 模块系统 ⬜ · 与 ArduPilot 对比 ⬜ | - |
+| PX4 SITL | 环境搭建 ⬜ · jmavsim/gazebo ⬜ · 参数调试 ⬜ | - |
+| PX4 EKF/控制 | EKF2 ⬜ · 姿态控制器 ⬜ · 日志分析 ⬜ | - |
+| MAVLink（通用） | 基础协议 📖 · MAVProxy 📖 · 自定义消息 🔧 · pymavlink 📖 | 2026-04-17 |
 | MCU/裸机编程 | 中断 ⬜ · 外设 ⬜ · ISR ⬜ · 寄存器 ⬜ · ESP32 ⬜ | - |
 | 控制理论 | PID ⬜ · 姿态控制 ⬜ · 滤波 ⬜ · 电机驱动 ⬜ | - |
 
@@ -73,3 +75,10 @@
 | 技术阅读 | 分级阅读 📖（生词率 ~5%，S0 阶段）· 技术文档 ⬜ | 2026-04-19 |
 | 听力 | ⬜ 未启动 | - |
 | 口语 | ⬜ 未启动 | - |
+
+### 产品设计
+
+| 技能 | 子节点掌握情况 | 最近更新 |
+|------|---------------|----------|
+| 产品思维 | MVP 定义 📖 · 用户故事(3C+INVEST) 📖 · Job Story 📖 · RICE 优先级 📖 · North Star Metric 📖 · 竞品分析 📖 | 2026-04-28 |
+| PRD/文档 | 需求文档 🔧 · 技术选型 ADR 🔧 · 竞品分析报告 🔧 · 场景细化 ⬜ · 数据流图 ⬜ · API 设计 ⬜ | 2026-04-28 |
