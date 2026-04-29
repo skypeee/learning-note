@@ -59,18 +59,21 @@ macOS 的 `screen`、`cu`、`minicom` 等工具底层走标准的 `tcsetattr` �
 pip3 install pyserial
 ```
 
-### 串口读取脚本（只读）
+### 串口调试工具（合并版）
 
-见同目录 `read_serial.py`。
-
-### 串口交互脚本（双向，可进 shell）
-
-见同目录 `shell.py`。
+见同目录 `serial_tool.py`。自动扫描串口、探测波特率、支持只读/交互模式、日志保存。
 
 ### 使用方法
 
 ```bash
-python3 shell.py
+# 交互式启动（零配置）
+python3 serial_tool.py
+
+# 命令行参数
+python3 serial_tool.py --port usbmodem --baud 1500000 --mode shell
+
+# 禁用日志
+python3 serial_tool.py --no-log
 ```
 
 板子启动完成后按 **回车**，即可进入 shell 交互。
@@ -78,6 +81,8 @@ python3 shell.py
 正点原子 buildroot 默认：
 - 用户名：`root`
 - 密码：空（直接回车）
+
+> 旧脚本 `read_serial.py` 和 `shell.py` 已被 `serial_tool.py` 替代，保留作参考。
 
 ## 内核日志静音
 
