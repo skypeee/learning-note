@@ -79,7 +79,16 @@ def wait_for_prompt(ser, timeout=5.0):
 def ensure_shell(ser):
     """Make sure we have an active shell on the board."""
     drain(ser)
-    send_cmd(ser, "", 0.2)
+    # Send enter to wake up the shell (board may be waiting for input)
+    time.sleep(0.5)
+    ser.write(b"\n")
+    ser.flush()
+    time.sleep(0.5)
+    drain(ser, 0.5)
+    ser.write(b"\n")
+    ser.flush()
+    time.sleep(0.5)
+    drain(ser, 0.5)
     send_cmd(ser, "echo READY_SERIAL", 0.5)
     resp = b""
     deadline = time.time() + 3.0

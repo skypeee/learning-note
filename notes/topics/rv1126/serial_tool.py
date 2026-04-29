@@ -94,6 +94,10 @@ def probe_baud(device, preset=None):
         print(f"  测试 {baud}...", end=" ", flush=True)
         try:
             ser = open_serial(device, baud)
+            # Send enter to wake up the shell (board may be idle)
+            time.sleep(0.3)
+            ser.write(b"\n")
+            ser.flush()
             buf = bytearray()
             deadline = time.time() + PROBE_TIMEOUT
             while time.time() < deadline:
