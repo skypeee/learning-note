@@ -247,13 +247,17 @@ def main():
         elif mode == "transfer":
             ser.close()
             ser = None
+            if log_file:
+                log_file.close()
+                log_file = None
             import subprocess
             script_dir = os.path.dirname(os.path.abspath(__file__))
             transfer_script = os.path.join(script_dir, "serial_transfer.py")
             port_arg = ["--port", os.path.basename(device)] if device else []
             subprocess.run([sys.executable, transfer_script] + port_arg + ["--baud", str(baud)])
     finally:
-        ser.close()
+        if ser:
+            ser.close()
         if log_file:
             log_file.close()
         print("\n已断开。")

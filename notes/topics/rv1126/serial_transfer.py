@@ -76,28 +76,41 @@ def wait_for_prompt(ser, timeout=5.0):
     return False
 
 
-def ensure_shell(ser):
+def ensure_shell(ser, retries=3):
     """Make sure we have an active shell on the board."""
-    drain(ser)
-    # Send enter to wake up the shell (board may be waiting for input)
-    time.sleep(0.5)
-    ser.write(b"\n")
-    ser.flush()
-    time.sleep(0.5)
-    drain(ser, 0.5)
-    ser.write(b"\n")
-    ser.flush()
-    time.sleep(0.5)
-    drain(ser, 0.5)
-    send_cmd(ser, "echo READY_SERIAL", 0.5)
-    resp = b""
-    deadline = time.time() + 3.0
-    while time.time() < deadline:
-        data = ser.read(4096)
-        if data:
-            resp += data
-            if b"READY_SERIAL" in resp:
-                return True
+    for attempt in range(retries):
+        # Send enter to wake up the shell
+        ser.write(b"\n")
+        ser.flush()
+        time.sleep(1.0)
+        # Read all pending data without discarding
+        buf = b""
+        deadline = time.time() + 1.0
+        while time.time() < deadline:
+            data = ser.read(4096)
+            if data:
+                buf += data
+            else:
+                break
+
+        # Send marker command
+        ser.write(b"echo READY_SERIAL\n")
+        ser.flush()
+        time.sleep(0.5)
+
+        # Wait for marker in response
+        resp = buf
+        deadline = time.time() + 3.0
+        while time.time() < deadline:
+            data = ser.read(4096)
+            if data:
+                resp += data
+                if b"READY_SERIAL" in resp:
+                    drain(ser, 0.3)
+                    return True
+            else:
+                break
+
     return False
 
 
