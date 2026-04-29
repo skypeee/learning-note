@@ -120,20 +120,23 @@ def probe_baud(device, preset=None):
 
 
 def choose_mode(preset=None):
-    if preset in ("monitor", "shell"):
+    if preset in ("monitor", "shell", "transfer"):
         return preset
 
     print("\n[模式选择]")
     print("  1. 只读监控 (monitor)")
     print("  2. 交互 Shell (shell)")
+    print("  3. 文件传输 (transfer)")
 
     while True:
         try:
-            choice = input("选择模式 [1-2]: ").strip()
+            choice = input("选择模式 [1-3]: ").strip()
             if choice in ("1", "m", "monitor"):
                 return "monitor"
             if choice in ("2", "s", "shell"):
                 return "shell"
+            if choice in ("3", "t", "transfer"):
+                return "transfer"
         except EOFError:
             pass
         print("无效选择，请重试。")
@@ -212,7 +215,7 @@ def main():
     parser = argparse.ArgumentParser(description="串口调试工具")
     parser.add_argument("--port", help="串口设备路径（模糊匹配）")
     parser.add_argument("--baud", type=int, help="波特率（跳过自动探测）")
-    parser.add_argument("--mode", choices=["monitor", "shell"], help="模式：monitor/shell")
+    parser.add_argument("--mode", choices=["monitor", "shell", "transfer"], help="模式：monitor/shell/transfer")
     parser.add_argument("--no-log", action="store_true", help="禁用日志保存")
     args = parser.parse_args()
 
@@ -235,8 +238,16 @@ def main():
     try:
         if mode == "monitor":
             run_monitor(ser, log_file)
-        else:
+        elif mode == "shell":
             run_shell(ser, log_file)
+        elif mode == "transfer":
+            ser.close()
+            ser = None
+            import subprocess
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            transfer_script = os.path.join(script_dir, "serial_transfer.py")
+            port_arg = ["--port", os.path.basename(device)] if device else []
+            subprocess.run([sys.executable, transfer_script] + port_arg + ["--baud", str(baud)])
     finally:
         ser.close()
         if log_file:
