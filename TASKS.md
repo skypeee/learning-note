@@ -79,6 +79,8 @@
 | L8 | RAG 完整架构（云平台日志分析场景） | P2 | ⬜ |
 | L9 | PX4 架构概览：与 ArduPilot 对比 | P3 | ⬜ |
 | L10 | Function Calling / Tool Use 机制 | P2 | ⬜ |
+| L11 | 遛狗听书计划：完成《系统之美》并输出每周笔记 | P1 | ⬜ |
+| L12 | 深度阅读《不朽》：配合 AI 拆解哲学隐喻和人物关系 | P1 | ⬜ |
 
 ### P4 LLM 架构认知（极低优先级）
 
@@ -101,4 +103,5 @@
 | G4 | 了解 browser-harness（LLM 自修复浏览器） | P2 | ⬜ |
 | G5 | 了解 xata（Postgres + copy-on-write 分支） | P2 | ⬜ |
 | G6 | 了解 weft（AI 系统编程语言 Rust） | P2 | ⬜ |
-| G7 | 了解 OpenMythos（Claude 架构第一性原理重建） | P2 | ⬜ |
+|| G7 | 了解 OpenMythos（Claude 架构第一性原理重建） | P2 | ⬜ |
+|| G8 | [读书笔记] 《不朽》：关于"听话"与"青少年叛逆"的教育观思考 | P2 | ⬜ |
