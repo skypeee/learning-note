@@ -21,11 +21,12 @@ Priority rule: A (when boards available) > C > B > learning. Learning tasks shou
 ## Subproject Commands
 
 ### React Core Demo (`demos/react-core-demo/`)
+- **Install deps**: `cd demos/react-core-demo && npm install`
 - **Dev server**: `cd demos/react-core-demo && npm run dev` (Vite + HMR)
-- **Build**: `npm run build`
-- **Lint**: `npm run lint`
-- **Preview production build**: `npm run preview`
-- Stack: React 19 + TypeScript + Vite. Uses `tsconfig.app.json` + `tsconfig.node.json`.
+- **Build**: `cd demos/react-core-demo && npm run build`
+- **Lint**: `cd demos/react-core-demo && npm run lint`
+- **Preview production build**: `cd demos/react-core-demo && npm run preview`
+- Stack: React 19 + TypeScript + Vite. ESLint via `typescript-eslint`. Uses `tsconfig.app.json` + `tsconfig.node.json`.
 
 ### Socratic Bot (`demos/socratic-bot/`)
 - **Install deps**: `cd demos/socratic-bot && pip install -r requirements.txt`
@@ -34,7 +35,7 @@ Priority rule: A (when boards available) > C > B > learning. Learning tasks shou
 
 ### Cloud Platform Infrastructure (`cloud-platform/`)
 - **Start services**: `cd cloud-platform && docker-compose up -d`
-- Services: Redis (6379), MySQL (3306/root/root), EMQX MQTT broker (1883 + dashboard 18083)
+- Services: Redis (6379), MySQL (3306/root/root + cloud/cloud), EMQX MQTT broker (1883 + dashboard 18083, admin/public)
 - **Stop**: `docker-compose down`
 - Current implementation: Vue3 web console + Python backend (see `docs/architecture.md` for full architecture)
 - **Migration in progress**: Vue3 → React Native (Expo) for cross-platform iOS/mobile support
@@ -71,12 +72,9 @@ After a new topic is learned, schedule reviews at 1d → 3d → 7d → 15d inter
 - `cloud-platform/docs/`: PRD and architecture docs for the embedded device management platform.
 - `docs/`: Drone system architecture (`architecture.md`), PRD v1.1 (`安防无人机PRD-v1.md`), competitive analysis (`竞品分析报告.md`), Docsify site, and standalone topic docs (RAG, OpenHD).
 - `micro-cards/`: Micro-knowledge cards for product thinking, engineering methodology, AI workflows, and architecture.
-- `english/vocabulary.md`: English vocabulary learning tracker.
 - `assessment/`: Weekly plans, skills matrix, milestones, review tracker.
-- `life/`: Personal life logs and analysis.
-- `notes/topics/`: Topic-based learning notes organized by subject.
+- `当前要处理的任务.md`: Ad-hoc scratchpad for active technical discussions and temporary task notes. Treat as ephemeral — migrate conclusions to `TASKS.md` or `weekly-plan.md`.
 
 ### Naming & Writing Conventions
 - Markdown files use Chinese for conceptual notes and English for code/technical terms.
 - Git commits use Chinese `feat:` prefix style.
-- The `当前要处理的任务.md` file captures ad-hoc tasks and ongoing technical discussions; treat it as a scratchpad for active work.
